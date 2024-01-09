@@ -1,0 +1,26 @@
+#!/bin/bash
+
+U=INSERT-DISK-UUID
+B=/path/to/backup/folder
+
+# How many backup to preserve?
+retention=4
+
+# Mount backup hdd partition
+mount -U $U $B
+
+# Check for numbers of backups and delete if over $retention
+cd $B
+bkpnum=$(ls *sysdump | wc -l)
+
+if [ $bkpnum -gt $retention  ]
+then
+	delnum=$((bkpnum-retention))
+	deletion=$(ls *sysdump | head -n "${delnum}")
+	echo Deleting old backups...
+	echo $deletion
+	rm -rf $deletion
+fi
+
+dump 0f $B/$(date +%Y-%m-%d)-$HOSTNAME-sysdump /dev/nvme0n1p3
+umount $B

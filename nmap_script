@@ -1,0 +1,44 @@
+#!/bin/bash
+
+echo "[.] Insert ip addresses or range..."
+echo "[.] Examples:"
+echo "  - 192.168.1.150"
+echo "  - 192.168.1.0/24"
+echo "  - 192.168.1.5-15"
+echo "  - 192.168.1.5 192.168.2.250"
+read ip
+
+echo "[?] Choose scan type..."
+echo "[1] Quick scan"
+echo "[2] Intense scan"
+echo "[3] Stealth scan"
+echo "[4] CVE scan"
+echo "[5] Malware scan"
+read scan
+
+case $scan in
+1)
+nmap -oN "quick-scan.txt" -T4 -Pn -p 21,22,80,443,3389,8080 $ip -open
+less quick-scan.txt
+;;
+2)
+nmap -oN "intense-scan.txt" -A $ip
+less intense-scan.txt
+;;
+3)
+nmap -oN "stealth-scan.txt" --dns-servers 1.1.1.1 1.0.0.1 -sL $ip
+less stealth-scan.txt
+;;
+4)
+nmap -oN "vuln-scan.txt" -Pn --script vuln $ip
+less vuln-scan.txt
+;;
+5)
+nmap -oN "malw-scan.txt" -sV --script=http-malware-host $ip
+less malw-scan.txt
+;;
+*)
+echo "[!] Option not recognized, exiting..."
+exit 0
+;;
+esac

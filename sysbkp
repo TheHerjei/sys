@@ -1,0 +1,165 @@
+#!/bin/bash
+
+M=/mnt/bkp
+U=0
+
+# Check backup folder is free to mount
+if [[ ! $(mount | grep $M) == "" ]]
+then
+	echo "[!] $M already used, umount first!"
+	exit
+fi
+
+# Check Disk UUID is inserted
+if [[ $U == 0 ]]
+then
+	echo "[!] Crical! Insert UUID of Backup Disk Partition!"
+	exit
+elif [[ ! $(mount | grep $U) == "" ]]
+then
+	echo "[!] $U already mounted, umounting..."
+	umount $U
+fi
+
+# Check folders exist
+if [[ ! -e $M ]]
+then
+	mkdir -p $M
+	echo "[#] Created $M directory."
+fi
+
+if [[ ! -e /.snapshots ]]
+then
+	echo "[#] Creating snapshots folder..."
+	mkdir /.snapshots
+fi
+
+# Check backup folter is empty
+if [[ ! $(ls $M) == "" ]]
+then
+	echo "[!] $M is not empty!"
+	exit
+fi
+
+# Mounting external backup device
+echo "[#] Mounting bkp device..."
+mount UUID=$U $M
+
+snaphots_list=$(ls /.snapshots)
+
+if [[ ! $snapshots_list == "" ]]
+then
+	echo "[.] PRINTING SNAPSHOTS LIST"
+	echo "# --  DATE    -- HOST-PARTITION -- EXT DISK -- #"
+	for i in $(ls /.snapshots/)
+	do
+		D=$(echo $i | cut -c -10)
+		H=$(echo $i | cut -c 11-)
+		E=$(ls $M | grep $i)
+		T=""
+		if [[ $E == $i ]]
+		then
+			T="OK"
+		fi
+		echo "-> $D -- $H -- $T"
+	done	
+	
+	PART=root
+	snapshot_name="$(date +%Y-%m-%d)-$HOSTNAME-$PART"
+	last_snapshot="$(ls /.snapshots/ | tail -n 1 | cut -c -10)-$HOSTNAME-$PART"
+	echo "[1.0] Creating new snapshot $snapshot_name..."
+	btrfs subvolume snapshot -r / /.snapshots/$snapshot_name
+	if [ $U == 0 ]
+	then
+		echo "[!] No disk UUID, skipping external backup copy..."
+	else
+		echo "[1.1] Copying snapshot to bkp device..."
+		btrfs send -p /.snapshots/$last_snapshot /.snapshots/$snapshot_name | btrfs receive $M
+	fi
+	
+	PART=home
+	snapshot_name="$(date +%Y-%m-%d)-$HOSTNAME-$PART"
+	echo "[2.0] Creating new snapshot $snapshot_name..."
+	btrfs subvolume snapshot -r / /.snapshots/$snapshot_name
+	if [ $U == 0 ]
+	then
+		echo "[!] No disk UUID, skipping external backup copy..."
+	else
+		echo "[2.1] Copying snapshot to bkp device..."
+		btrfs send -p /.snapshots/$last_snapshot /.snapshots/$snapshot_name | btrfs receive $M
+	fi
+	
+	echo "[3] Deleting old backups..."
+	dateref=$(date -d 'last month -6 month' +%Y-%m-%d)
+	for i in $(ls /.snapshots/)
+	do
+		datesnap=$(echo "$i" | cut -c -10)
+		if [[ $dateref > $datesnap ]]
+		then
+			snaptodel="$datesnap-$HOSTNAME-root"
+			btrfs subvolume delete /.snapshots/$snaptodel
+			btrfs subvolume delete $M/$snaptodel
+			
+			snaptodel="$datesnap-$HOSTNAME-home"
+			btrfs subvolume delete /.snapshots/$snaptodel
+			btrfs subvolume delete $M/$snaptodel
+		fi
+	done
+	
+	echo "[4] DONE! PRINTING SNAPSHOTS LIST..."
+	echo "# --  DATE    -- HOST-PARTITION -- EXT DISK -- #"
+	for i in $(ls /.snapshots/)
+	do
+		D=$(echo $i | cut -c -10)
+		H=$(echo $i | cut -c 11-)
+		E=$(ls $M | grep $i)
+		T=""
+		if [[ $E == $i ]]
+		then
+			T="OK"
+		fi
+		echo "-> $D -- $H -- $T"
+	done	
+else
+	echo "[!] No previous snapshots"
+	PART=root
+	snapshot_name="$(date +%Y-%m-%d)-$HOSTNAME-$PART"
+	echo "[1.0] Creating new snapshot for / directory..."
+	btrfs subvolume snapshot -r / /.snapshots/$snapshot_name
+	if [ $U == 0 ]
+	then
+		echo "[!] No disk UUID, skipping external backup copy..."
+	else
+		echo "[1.1] Copying snapshot to bkp device..."
+		btrfs send /.snapshots/$snapshot_name | btrfs receive $M
+	fi
+	
+	PART=home
+	snapshot_name="$(date +%Y-%m-%d)-$HOSTNAME-$PART"
+	echo "[2.0] Creating new snapshot for /home directory..."
+	btrfs subvolume snapshot -r /home /.snapshots/$snapshot_name
+	if [ $U == 0 ]
+	then
+		echo "[!] No disk UUID, skipping external backup copy..."
+	else
+		echo "[2.1] Copying snapshot to bkp device..."
+		btrfs send /.snapshots/$snapshot_name | btrfs receive $M
+	fi
+	
+	echo "[3] DONE! PRINTING SNAPSHOTS LIST..."
+	echo "# --  DATE    -- HOST-PARTITION -- EXT DISK -- #"
+	for i in $(ls /.snapshots/)
+	do
+		D=$(echo $i | cut -c -10)
+		H=$(echo $i | cut -c 11-)
+		E=$(ls $M | grep $i)
+		T=""
+		if [[ $E == $i ]]
+		then
+			T="OK"
+		fi
+		echo "-> $D -- $H -- $T"
+	done	
+fi
+
+umount $M

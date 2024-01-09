@@ -1,0 +1,40 @@
+#!/bin/bash
+
+W=/home/ismaele/Nextcloud/VPN/wireguard
+V=0
+vpns=()
+n=0
+
+echo "[#] Listing wireguard tunnels:"
+for i in $(find $W -maxdepth 1 -iname "*.conf"); do
+	vpns+=( $i )
+	echo "[$n] $i"
+	let "n=n+1"
+done
+
+echo "[?] Select tunnel number ('exit' to exit)..."
+read choice
+
+case $choice in
+	"exit")
+		echo "[!] Bye bye!"
+		exit 0
+		;;
+	[0-9][0-9]|[0-9])
+		echo "[.] Tunnel selected: ${vpns[$choice]}"
+		wg-quick up ${vpns[$choice]}
+		echo "[.] Connected..."
+		sleep 2s
+		wg
+		echo "[.] Press a button to disconnect..."
+		read pause
+		wg-quick down ${vpns[$choice]}
+		exit 0
+		;;
+	*)
+		echo "[!] Tunnel not found: $choice"
+		exit
+		;;
+esac
+
+exit 0
