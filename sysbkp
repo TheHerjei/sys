@@ -45,7 +45,7 @@ fi
 echo "[#] Mounting bkp device..."
 mount UUID=$U $M
 
-snaphots_list=$(ls /.snapshots)
+snapshots_list=$(ls /.snapshots)
 
 if [[ ! $snapshots_list == "" ]]
 then
