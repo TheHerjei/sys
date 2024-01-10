@@ -1,0 +1,40 @@
+#!/bin/bash
+
+function cloudflareip () {		
+		curl --request PUT \
+		--url https://api.cloudflare.com/client/v4/zones/DNS_ZONE_CHANGE_IT!!!/dns_records/DNS_RECORD_CHANGE_IT!!! \
+		--header 'Content-Type: application/json' \
+                --header 'Authorization: Bearer XXXXXAUTHBEARERTOKENXXXXX' \
+                --data '{
+                        "comment": "Automatic Update",
+                        "content": "'$ip'",
+                        "type": "A",
+                        "name": "FQDN.CHANGE.IT!!!",
+                        "proxied": false,
+                        "ttl": 3600
+                }'
+
+}
+
+function ydnsip () {
+	curl "https://ydns.io/hosts/update/ydnstokenblabla0101CHANGE-IT!!!"
+}
+
+ip=$(curl ifconfig.me)
+
+
+if [ -e /tmp/ip ]
+then
+        if [[ $ip == $(cat /tmp/ip) ]]
+        then
+                echo "IP not changed"
+        else
+                echo $ip > /tmp/ip
+		cloudflareip
+		ydnsip
+        fi
+else
+        echo $ip > /tmp/ip
+	cloudflareip
+	ydnsip
+fi
