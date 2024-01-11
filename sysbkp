@@ -54,7 +54,7 @@ then
 	for i in $(ls /.snapshots/)
 	do
 		D=$(echo $i | cut -c -10)
-		H=$(echo $i | cut -c 11-)
+		H=$(echo $i | cut -c 12-)
 		E=$(ls $M | grep $i)
 		T=""
 		if [[ $E == $i ]]
@@ -111,7 +111,7 @@ then
 	for i in $(ls /.snapshots/)
 	do
 		D=$(echo $i | cut -c -10)
-		H=$(echo $i | cut -c 11-)
+		H=$(echo $i | cut -c 12-)
 		E=$(ls $M | grep $i)
 		T=""
 		if [[ $E == $i ]]
@@ -151,7 +151,7 @@ else
 	for i in $(ls /.snapshots/)
 	do
 		D=$(echo $i | cut -c -10)
-		H=$(echo $i | cut -c 11-)
+		H=$(echo $i | cut -c 12-)
 		E=$(ls $M | grep $i)
 		T=""
 		if [[ $E == $i ]]
