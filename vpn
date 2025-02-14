@@ -1,6 +1,6 @@
 #!/bin/bash
 
-W=/home/ismaele/Nextcloud/VPN/wireguard
+W=/PATH/TO/WIREGUARD/CONFIG/FILES
 V=0
 vpns=()
 n=0
